@@ -1,0 +1,109 @@
+openapi: 3.0.0
+info:
+  title: example-http-api
+  description: Example API for HTTP APIs on API Gateway
+  version: 0.1.0
+  contact:
+    email: admin@example.com
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+- url: https://api.{stage}.example.com:{port}/{basePath}
+  description: dev
+  variables:
+    port:
+      enum:
+      - '8443'
+      - '443'
+      default: '8443'
+    basePath:
+      default: v1
+- url: https://api.example.com:{port}:{basePath}
+  description: production
+  variables:
+    port:
+      enum:
+      - '443'
+      default: '443'
+    basePath:
+      default: v1
+
+components:
+  schemas:
+    error:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+    profile:
+      type: object
+      properties:
+        uid:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+    result:
+      type: object
+      properties:
+        result:
+          type: boolean
+    uid:
+      type: object
+      properties:
+        uid:
+          type: string
+  responses:
+    error:
+      description: error
+      content:
+        text/html:
+          schema:
+            $ref: '#/components/schemas/error'
+          example:
+            code: 500
+            message: 'unable to retrieve message'
+  x-amazon-apigateway-integrations:
+    profile:
+      connectionType: INTERNET
+      httpMethod: POST
+      payloadFormatVersion: 2.0
+      responses:
+        default:
+          statusCode: 200
+      type: aws_proxy
+      uri:
+        Fn::Sub: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ExampleFnProfile.Arn}/invocations'
+
+paths:
+  /profile:
+    get:
+      summary: returns basic profile
+      responses:
+        200:
+          description: returns user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/profile'
+              examples:
+                bob:
+                  value:
+                    uid: 'eac9f980-8180-49d8-836c-c01386bc94cf'
+                    username: 'bob'
+                    email: 'bob@example.com'
+                jane:
+                  value:
+                    uid: 'c92d40d1-5391-4c48-9f7e-51091cd9e551'
+                    username: 'jane'
+                    email: 'jane@example.com'
+        default:
+          $ref: '#/components/responses/error'
+      x-amazon-apigateway-integration:
+        $ref: '#/components/x-amazon-apigateway-integrations/profile'
